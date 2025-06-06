@@ -1,9 +1,13 @@
 ###################################
 #### ARCHIVOS EN GOOGLE DRIVE ####
 ###################################
+
+#Ron Fernández
+#2025-06-05
+
 #archivos que estan en formato FLAC en una carpeta de Google Drive
 
-#Prueba con pocos archivos
+#!!!!! Esta es una prueba con pocos archivos (un folder con audios de un solo día)
 
 install.packages(c("googledrive", "httr"))
 
@@ -14,34 +18,38 @@ library(httr)
 #otros paquetes
 library(tuneR)
 library(seewave)
+library(av)
 library(soundecology)
 library(dplyr)
+
 
 # Autenticación con Google Drive
 drive_auth() #ingresa a tu cuenta de Google Drive
 #previamente se te compartirá a tu cuenta la carpeta de trabajo para que puedas acceder a los archivos
 
 #establecer los ID de las Unidades / Carpetas compartidas donde están los archivos
+#!!! por ahora comparto directamente el ID para este ejemplo pero el resto de codigo ayuda a hacer busquedas dentro de Drive
 
-#PRUEBA: usaremos una carpeta de prueba en una Unidad compartida con pocos archivos 
+#shared_drive_find() #identificar el ID de la carpeta compartida a utilizar
+#sdrive_id <- readline(prompt = "Ingresa el ID de la Unidad compartida:") #copiar en la terminal el ID de la Unidad Compartida
 
-shared_drive_find() #identificar el ID de la carpeta compartida a utilizar
-sdrive_id <- readline(prompt = "Ingresa el ID de la Unidad compartida:") #copiar en la terminal el ID de la Unidad Compartida
+#drive_find(n_max = 10, shared_drive = as_id(sdrive_id), type = "folder") #identificar el ID de la carpeta de trabajo
+#folder_id <- readline(prompt = "Ingresa el ID de la carpeta en Google Drive:") #copiar en la terminal el ID de la carpeta de trabajo
+folder_id <- "1Ai4tTS7bKACBUZo5F64IXS8Pk63L2f5x" #por ahora comparto directamente el ID de la carpeta de ejemplo
 
-drive_find(n_max = 10, shared_drive = as_id(sdrive_id), type = "folder") #identificar el ID de la carpeta de trabajo
-folder_id <- readline(prompt = "Ingresa el ID de la carpeta en Google Drive:")
+#folder_site_name <- readline(prompt = "Ingresa el nombre de la carpeta de trabajo en Google Drive (codifica sitio y fecha:")
+folder_site_name <- "R501_240801_D2" #por ahora comparto directamente el nombre de la carpeta de ejemplo
 
-folder_site_name <- readline(prompt = "Ingresa el nombre de la carpeta de trabajo en Google Drive (codifica sitio y fecha:")
+files <- drive_ls(as_id(folder_id))
 
-files_gdrive <- drive_ls(as_id(folder_id))
 
-#drive_ls(as_id(folder_id))
-
+#folder de resultados, se puede buscar navegando con drive_find() o copiarla del navegador 
+#folder_results <- readline(prompt = "Ingresa el ID de la carpeta de resultados en Google Drive:") #copiar en la terminal el ID de la carpeta donde se guardan los resultados
+folder_results <- "1BXNLxKla-ei6uuLBHiSp5RfNTEQ6UMWz" # por ahora comparto directamente el ID de la carpeta
 
 # Crear carpeta temporal local
 temp_dir <- file.path(tempdir(), "gdrive_audio")
 dir.create(temp_dir, showWarnings = FALSE)
-
 
 
 # Inicializar dataframe
@@ -56,14 +64,15 @@ temp_table <- data.frame(
   stringsAsFactors = FALSE
 )
 
+
 # Procesar cada archivo
 {
 start_time <- Sys.time() 
 
-for(i in 1:nrow(files_gdrive)) {
+for(i in 1:nrow(files)) {
   tryCatch({
-    file_info <- files_gdrive[i, ]
-    print(paste("Procesando archivo", i, "de", nrow(files_gdrive), ":", file_info$name))
+    file_info <- files[i, ]
+    print(paste("Procesando archivo", i, "de", nrow(files), ":", file_info$name))
     
     # Descargar archivo temporalmente
     file_local <- file.path(temp_dir, file_info$name)
@@ -106,7 +115,8 @@ for(i in 1:nrow(files_gdrive)) {
       })
   
   }
-
+  
+  #mensajes finales indicando tiempo de proceso
   print("Procesamiento completado!")
   
   end_time <- Sys.time()
@@ -119,31 +129,44 @@ for(i in 1:nrow(files_gdrive)) {
   # Limpiar carpeta temporal completa
   unlink(temp_dir, recursive = TRUE)
   
+  #
+  #añadir columna con nombre de sitio/folder
+  temp_table <- temp_table %>%
+    mutate(site = folder_site_name)
+  
+  
+  #renombrar la tabla de resultados
+  x <- assign(paste0("TableAlphaIndices_",folder_site_name), temp_table)
+  
+  
+  # exportar dataframe como archivo CSV (esta copia queda en la computadora local como respaldo y se requiere para subir a drive)
+  exported_csv <- write.csv(x, file=paste0("TableAlphaIndices_",folder_site_name,".csv"))
+  
+  # Verificar si el csv se escribió correctamente
+  if (!is.null(file.exists(path=paste0("TableAlphaIndices_",folder_site_name,".csv")))) {
+    print(paste("Archivo CSV (",paste0("TableAlphaIndices_",folder_site_name,".csv"), ") escrito exitosamente:", exported_csv))
+  } else {
+    print("Error al escribir el archivo.")
+  }
+  
+  
+  
 }
 
-#renombrar la tabla de resultados
 
 
-
-x <- assign(name_folder, temp_table)
-library(dplyr)
-x <- x %>%
-  mutate(site = folder_site_name)
-
-write.csv(x, file=paste0(name_folder,".csv"))
-
-# exportar dataframe como archivo CSV
- write.csv(name_dataframe,file=paste0(name_dataframe,".csv"))
- dataframe_export <- read.csv(name_dataframe,file=paste0(name_dataframe,".csv"))
-
- paste0("TableAlphaIndices_",folder_site_name) <- temp_table
-
-  
 #subir archivo a drive
-uploaded_file <- drive_upload(media=paste0(name_folder,".csv"), name=paste0(name_folder,".csv"), path=as_id("1Kigtkbw09V3KKxerafy_6lAmv_1rx85U"))
+drive_upload(media=paste0("TableAlphaIndices_",folder_site_name,".csv"), name=paste0("TableAlphaIndices_",folder_site_name,".csv"), path=as_id("1BXNLxKla-ei6uuLBHiSp5RfNTEQ6UMWz"))
+
+
+uploaded_file <- drive_upload(media=paste0("TableAlphaIndices_",folder_site_name,".csv"), name=paste0("TableAlphaIndices_",folder_site_name,".csv"), path=as_id(folder_results)) #el id de la carpeta de resultados en GDrive
+ 
+ 
 # Verificar si el archivo se subió correctamente
 if (!is.null(uploaded_file)) {
   print(paste("Archivo subido exitosamente:", uploaded_file$name))
 } else {
   print("Error al subir el archivo.")
 }
+
+##FIN
