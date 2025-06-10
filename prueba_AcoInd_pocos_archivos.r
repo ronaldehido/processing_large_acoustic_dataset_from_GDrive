@@ -69,7 +69,7 @@ temp_table <- data.frame(
 {
 start_time <- Sys.time() 
 
-for(i in 1:nrow(files)) {
+for(i in seq_len(nrow(files))) {
   tryCatch({
     file_info <- files[i, ]
     print(paste("Procesando archivo", i, "de", nrow(files), ":", file_info$name))
@@ -156,9 +156,6 @@ for(i in 1:nrow(files)) {
 
 
 #subir archivo a drive
-drive_upload(media=paste0("TableAlphaIndices_",folder_site_name,".csv"), name=paste0("TableAlphaIndices_",folder_site_name,".csv"), path=as_id("1BXNLxKla-ei6uuLBHiSp5RfNTEQ6UMWz"))
-
-
 uploaded_file <- drive_upload(media=paste0("TableAlphaIndices_",folder_site_name,".csv"), name=paste0("TableAlphaIndices_",folder_site_name,".csv"), path=as_id(folder_results)) #el id de la carpeta de resultados en GDrive
  
  
